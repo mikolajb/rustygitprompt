@@ -1,22 +1,14 @@
 use git2::Error;
-use git2::Repository;
 use std::env;
+use colored::*;
 
 fn main() -> std::io::Result<()> {
-    let mut path = env::current_dir()?;
-
-    let repo = loop {
-        let repo = Repository::init(path.as_path());
-        if repo.is_err() {
-            if !path.pop() {
-                return Ok(());
-            }
-        } else {
-            break repo.unwrap();
-        }
+    let repo = match git2::Repository::discover(env::current_dir()?.as_path()) {
+        Ok(r) => r,
+        Err(_r) => return Ok(()),
     };
 
-    let r = MyRepository { repository: repo };
+    let r = Repository { repository: repo };
 
     match r.branch() {
         Ok(branch) => print!("{}", branch.to_string()),
@@ -31,11 +23,11 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-struct MyRepository {
-    repository: Repository,
+struct Repository {
+    repository: git2::Repository,
 }
 
-impl MyRepository {
+impl Repository {
     fn status(&self) -> Result<RepoStatus, Error> {
         let mut options = git2::StatusOptions::new();
         options.include_untracked(true);
@@ -83,6 +75,7 @@ impl MyRepository {
             }),
         };
         let mut name = head.name().unwrap();
+        let branch_name = name;
 
         if name == "refs/heads/master" {
             name = "🅼"
@@ -99,14 +92,16 @@ impl MyRepository {
 
         let upstream = self
             .repository
-            .find_branch(name, git2::BranchType::Local)
-            .and_then(|u: git2::Branch| {
-                self.repository.graph_ahead_behind(
-                    head.target().unwrap(),
-                    u.into_reference().target().unwrap(),
-                )
+            .branch_upstream_name(branch_name)
+            .ok()
+            .and_then(|bname_buf: git2::Buf| {
+                bname_buf.as_str().map(|s| {s.to_string()})
             })
-            .ok();
+            .and_then( |bname| {
+                self.repository
+                    .graph_ahead_behind(head.target().unwrap(), self.repository.refname_to_id(&bname).unwrap())
+                    .ok()
+            });
 
         Ok(BranchStatus {
             name: name.to_string(),
@@ -131,14 +126,14 @@ impl RepoStatus {
     fn to_string(&self) -> String {
         let mut result = String::new();
 
-        result.push_str(&self.new_files.map(|i| { format!("{}N", i) }).unwrap_or("".to_string()));
-        result.push_str(&self.modifications_staged.map(|i| { format!("{}M", i) }).unwrap_or("".to_string()));
-        result.push_str(&self.renames_staged.map(|i| { format!("{}R", i) }).unwrap_or("".to_string()));
-        result.push_str(&self.deletions_staged.map(|i| { format!("{}D", i) }).unwrap_or("".to_string()));
-        result.push_str(&self.modifications.map(|i| { format!("{}M", i) }).unwrap_or("".to_string()));
-        result.push_str(&self.renames.map(|i| { format!("{}R", i) }).unwrap_or("".to_string()));
-        result.push_str(&self.deletions.map(|i| { format!("{}D", i) }).unwrap_or("".to_string()));
-        result.push_str(&self.untracked.map(|i| { format!("{}U", i) }).unwrap_or("".to_string()));
+        result.push_str(&self.new_files.map(|i| { format!("{}{}", i, "N".green()) }).unwrap_or("".to_string()));
+        result.push_str(&self.modifications_staged.map(|i| { format!("{}{}", i, "M".green()) }).unwrap_or("".to_string()));
+        result.push_str(&self.renames_staged.map(|i| { format!("{}{}", i, "R".green()) }).unwrap_or("".to_string()));
+        result.push_str(&self.deletions_staged.map(|i| { format!("{}{}", i, "D".green()) }).unwrap_or("".to_string()));
+        result.push_str(&self.modifications.map(|i| { format!("{}{}", i, "M".red()) }).unwrap_or("".to_string()));
+        result.push_str(&self.renames.map(|i| { format!("{}{}", i, "R".red()) }).unwrap_or("".to_string()));
+        result.push_str(&self.deletions.map(|i| { format!("{}{}", i, "D".red()) }).unwrap_or("".to_string()));
+        result.push_str(&self.untracked.map(|i| { format!("{}{}", i, "U".blue()) }).unwrap_or("".to_string()));
 
         result
     }
@@ -153,19 +148,20 @@ struct BranchStatus {
 impl BranchStatus {
     fn upstream(&self) -> Option<String> {
         match self.upstream {
-            Some((a, b)) if a > 0 && b > 0 => Some(format!("⇵ {}{}", a, b)),
-            Some((a, _b)) if a > 0 => Some(format!("↓ {}", a)),
-            Some((_a, b)) if b > 0 => Some(format!("↑ {}", b)),
-            _ => None,
+            Some((a, b)) if a > 0 && b > 0 => Some(format!("{}{}{}", "⇵".yellow(), a, b)),
+            Some((a, 0)) if a > 0 => Some(format!("{}{}", "↓".red(), a)),
+            Some((0, b)) if b > 0 => Some(format!("{}{}", "↑".green(), b)),
+            Some((0, 0)) => Some("≡".to_string()),
+            _ => Some("⚡".red().to_string()),
         }
     }
 
     fn local(&self) -> Option<String> {
         match self.local {
-            Some((a, b)) if a > 0 && b > 0 => Some(format!("m ↔ {}{}", a, b)),
-            Some((a, _b)) if a > 0 => Some(format!("m ← {}", a)),
-            Some((_a, b)) if b > 0 => Some(format!("m → {}", b)),
-            _ => None,
+            Some((a, b)) if a > 0 && b > 0 => Some(format!("m{}{}{}", "↔".magenta(), a, b)),
+            Some((a, 0)) if a > 0 => Some(format!("m{}{}", "←".magenta(), a)),
+            Some((0, b)) if b > 0 => Some(format!("m{}{}", "→".magenta(), b)),
+            _ => Some("⦰".red().to_string()),
         }
     }
 
@@ -174,7 +170,7 @@ impl BranchStatus {
 
         result.push_str(&self.name);
         result.push_str(&self.local().unwrap_or("".to_string()));
-        result.push_str(&self.upstream().unwrap_or("⚡".to_string()));
+        result.push_str(&self.upstream().unwrap_or("".to_string()));
 
         result
     }
