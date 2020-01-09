@@ -74,12 +74,14 @@ impl Repository {
                 upstream: None,
             }),
         };
-        let mut name = head.name().unwrap();
-        let branch_name = name;
 
-        if name == "refs/heads/master" {
-            name = "🅼"
-        }
+        let branch_name = head.name().unwrap();
+
+        let hr_name = if branch_name == "refs/heads/master" {
+            "🅼"
+        } else {
+            head.shorthand().unwrap()
+        };
 
         let local = self
             .repository
@@ -104,7 +106,7 @@ impl Repository {
             });
 
         Ok(BranchStatus {
-            name: name.to_string(),
+            name: hr_name.to_string(),
             local,
             upstream,
         })
