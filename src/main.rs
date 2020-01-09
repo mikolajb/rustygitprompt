@@ -1,6 +1,6 @@
 use git2::Error;
 use std::env;
-use colored::*;
+use ansi_term::Colour::*;
 
 fn main() -> std::io::Result<()> {
     let repo = match git2::Repository::discover(env::current_dir()?.as_path()) {
@@ -9,6 +9,8 @@ fn main() -> std::io::Result<()> {
     };
 
     let r = Repository { repository: repo };
+
+    print!(" ");
 
     match r.branch() {
         Ok(branch) => print!("{}", branch.to_string()),
@@ -126,14 +128,14 @@ impl RepoStatus {
     fn to_string(&self) -> String {
         let mut result = String::new();
 
-        result.push_str(&self.new_files.map(|i| { format!("{}{}", i, "N".green()) }).unwrap_or("".to_string()));
-        result.push_str(&self.modifications_staged.map(|i| { format!("{}{}", i, "M".green()) }).unwrap_or("".to_string()));
-        result.push_str(&self.renames_staged.map(|i| { format!("{}{}", i, "R".green()) }).unwrap_or("".to_string()));
-        result.push_str(&self.deletions_staged.map(|i| { format!("{}{}", i, "D".green()) }).unwrap_or("".to_string()));
-        result.push_str(&self.modifications.map(|i| { format!("{}{}", i, "M".red()) }).unwrap_or("".to_string()));
-        result.push_str(&self.renames.map(|i| { format!("{}{}", i, "R".red()) }).unwrap_or("".to_string()));
-        result.push_str(&self.deletions.map(|i| { format!("{}{}", i, "D".red()) }).unwrap_or("".to_string()));
-        result.push_str(&self.untracked.map(|i| { format!("{}{}", i, "U".blue()) }).unwrap_or("".to_string()));
+        result.push_str(&self.new_files.map(|i| { format!("{}{}", i, Green.paint("N")) }).unwrap_or("".to_string()));
+        result.push_str(&self.modifications_staged.map(|i| { format!("{}{}", i, Green.paint("M")) }).unwrap_or("".to_string()));
+        result.push_str(&self.renames_staged.map(|i| { format!("{}{}", i, Green.paint("R")) }).unwrap_or("".to_string()));
+        result.push_str(&self.deletions_staged.map(|i| { format!("{}{}", i, Green.paint("D")) }).unwrap_or("".to_string()));
+        result.push_str(&self.modifications.map(|i| { format!("{}{}", i, Red.paint("M")) }).unwrap_or("".to_string()));
+        result.push_str(&self.renames.map(|i| { format!("{}{}", i, Red.paint("R")) }).unwrap_or("".to_string()));
+        result.push_str(&self.deletions.map(|i| { format!("{}{}", i, Red.paint("D")) }).unwrap_or("".to_string()));
+        result.push_str(&self.untracked.map(|i| { format!("{}{}", i, Blue.paint("U")) }).unwrap_or("".to_string()));
 
         result
     }
@@ -148,20 +150,20 @@ struct BranchStatus {
 impl BranchStatus {
     fn upstream(&self) -> Option<String> {
         match self.upstream {
-            Some((a, b)) if a > 0 && b > 0 => Some(format!("{}{}{}", "⇵".yellow(), a, b)),
-            Some((a, 0)) if a > 0 => Some(format!("{}{}", "↓".red(), a)),
-            Some((0, b)) if b > 0 => Some(format!("{}{}", "↑".green(), b)),
+            Some((a, b)) if a > 0 && b > 0 => Some(format!("{}{}{}", Yellow.paint("⇵"), a, b)),
+            Some((a, 0)) if a > 0 => Some(format!("{}{}", Red.paint("↓"), a)),
+            Some((0, b)) if b > 0 => Some(format!("{}{}", Green.paint("↑"), b)),
             Some((0, 0)) => Some("≡".to_string()),
-            _ => Some("⚡".red().to_string()),
+            _ => Some(Red.paint("⚡").to_string()),
         }
     }
 
     fn local(&self) -> Option<String> {
         match self.local {
-            Some((a, b)) if a > 0 && b > 0 => Some(format!("m{}{}{}", "↔".magenta(), a, b)),
-            Some((a, 0)) if a > 0 => Some(format!("m{}{}", "←".magenta(), a)),
-            Some((0, b)) if b > 0 => Some(format!("m{}{}", "→".magenta(), b)),
-            _ => Some("⦰".red().to_string()),
+            Some((a, b)) if a > 0 && b > 0 => Some(format!("m{}{}{}", Purple.paint("↔"), a, b)),
+            Some((a, 0)) if a > 0 => Some(format!("m{}{}", Purple.paint("←"), a)),
+            Some((0, b)) if b > 0 => Some(format!("m{}{}", Purple.paint("→"), b)),
+            _ => Some(Red.paint("⦰").to_string()),
         }
     }
 
