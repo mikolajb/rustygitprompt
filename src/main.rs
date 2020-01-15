@@ -12,14 +12,14 @@ fn main() -> std::io::Result<()> {
 
     print!(" ");
 
-    match r.branch() {
-        Ok(branch) => print!("{}", branch.to_string()),
-        Err(e) => panic!("failed to analyze branch: {}", e),
-    }
-
     match r.status() {
         Ok(status) => print!("{}", status.to_string()),
         Err(e) => panic!("failed to get status: {}", e),
+    }
+
+    match r.branch() {
+        Ok(branch) => print!("{}", branch.to_string()),
+        Err(e) => panic!("failed to analyze branch: {}", e),
     }
 
     Ok(())
@@ -152,11 +152,11 @@ struct BranchStatus {
 impl BranchStatus {
     fn upstream(&self) -> Option<String> {
         match self.upstream {
-            Some((a, b)) if a > 0 && b > 0 => Some(format!("{}{}{}", Yellow.paint("⇵"), a, b)),
-            Some((a, 0)) if a > 0 => Some(format!("{}{}", Red.paint("↓"), a)),
-            Some((0, b)) if b > 0 => Some(format!("{}{}", Green.paint("↑"), b)),
-            Some((0, 0)) => Some("≡".to_string()),
-            _ => Some(Red.paint("⚡").to_string()),
+            Some((a, b)) if a > 0 && b > 0 => Some(format!("{}{}{}", Red.paint("⇵"), Yellow.paint(b.to_string()), Green.paint(a.to_string()))),
+            Some((a, 0)) if a > 0 => Some(format!("{}{}", Green.paint("↑"), a)),
+            Some((0, b)) if b > 0 => Some(format!("{}{}", Yellow.paint("↓"), b)),
+            Some((0, 0)) => Some("".to_string()),
+            _ => Some(Red.paint("✗").to_string()),
         }
     }
 
@@ -165,17 +165,49 @@ impl BranchStatus {
             Some((a, b)) if a > 0 && b > 0 => Some(format!("m{}{}{}", Purple.paint("↔"), a, b)),
             Some((a, 0)) if a > 0 => Some(format!("m{}{}", Purple.paint("←"), a)),
             Some((0, b)) if b > 0 => Some(format!("m{}{}", Purple.paint("→"), b)),
-            _ => Some(Red.paint("⦰").to_string()),
+            _ => Some(Green.paint("").to_string()),
         }
     }
 
     fn to_string(&self) -> String {
         let mut result = String::new();
 
-        result.push_str(&self.name);
         result.push_str(&self.local().unwrap_or("".to_string()));
         result.push_str(&self.upstream().unwrap_or("".to_string()));
+        if result.len() > 0 {
+            result.push_str(" ");
+        }
+        result.push_str(&self.name);
 
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::process::Command;
+
+    #[test]
+    fn test_open_repo() {
+        let dir = tempfile::Builder::new().prefix("rustygitprompt").tempdir().expect("cannot create temporary file");
+
+        Command::new("git")
+            .arg("init")
+            .current_dir(dir.path())
+            .output()
+            .expect("failed to create git repository");
+
+        let repo = git2::Repository::discover(dir.path()).expect("cannot open repository");
+        let r = Repository { repository: repo };
+        let s = r.status().expect("failed to analize status");
+        let b = r.branch().expect("failed to analize branch");
+
+        assert_eq!(s.to_string(), "");
+        assert_eq!(b.name, "detached");
+        assert_eq!(b.upstream, None);
+        assert_eq!(b.local, None);
+
+        dir.close().expect("cannot close");
     }
 }
