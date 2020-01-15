@@ -1,6 +1,6 @@
-use ansi_term::Colour::*;
+use ansi_term::Color::*;
 
-pub fn analyze(repository: git2::Repository) -> Result<BranchStatus, git2::Error> {
+pub fn analyze(repository: &git2::Repository) -> Result<BranchStatus, git2::Error> {
     let head = match repository.head() {
         Ok(h) => h,
         Err(_e) => {
@@ -111,7 +111,7 @@ mod tests {
             .expect("failed to create git repository");
 
         let repo = git2::Repository::discover(dir.path()).expect("cannot open repository");
-        let b = analyze(repo).expect("failed to analize branch");
+        let b = analyze(&repo).expect("failed to analize branch");
 
         assert_eq!(b.name, "detached");
         assert_eq!(b.upstream, None);
