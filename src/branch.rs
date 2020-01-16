@@ -77,18 +77,17 @@ impl BranchStatus {
             _ => Some(Green.paint("").to_string()),
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
-        let mut result = String::new();
-
-        result.push_str(&self.local().unwrap_or("".to_string()));
-        result.push_str(&self.upstream().unwrap_or("".to_string()));
-        if result.len() > 0 {
-            result.push_str(" ");
-        }
-        result.push_str(&self.name);
-
-        result
+impl std::fmt::Display for BranchStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}{}{}",
+            self.local().unwrap_or_default(),
+            self.upstream().unwrap_or_default(),
+            self.name
+        )
     }
 }
 
