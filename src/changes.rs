@@ -1,5 +1,5 @@
-use ansi_term::Color::*;
-use ansi_term::ANSIGenericString;
+use crate::numbers::*;
+use crate::colors::*;
 use crate::settings::*;
 
 pub fn analyze(repository: &git2::Repository) -> Result<Changes, git2::Error> {
@@ -66,56 +66,44 @@ pub struct Changes {
     deletions: Option<usize>,
 }
 
-const SUPERSCRIPT: &'static [&'static str; 10] = &["⁰","¹","²","³","⁴","⁵","⁶","⁷","⁸","⁹"];
-const SUBSCRIPT: &'static [&'static str; 10] = &["₀","₁","₂","₃","₄","₅","₆","₇","₈","₉"];
-const DIGITS: &'static [&'static str; 10] = &["0","1","2","3","4","5","6","7","8","9"];
-
-
-fn encode_base_10_number(n: usize, symbols: &[&str; 10]) -> String {
-    n.to_string().chars().map(|c| symbols[c.to_digit(10).unwrap() as usize]).collect()
-}
-
 impl std::fmt::Display for Changes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let settings = SETTINGS.lock().unwrap();
-        let encode_number = |i| match &settings.icon_list_format {
-            IconListFormat::Superscript => encode_base_10_number(i, SUPERSCRIPT),
-            IconListFormat::Subscript => encode_base_10_number(i, SUBSCRIPT),
-            IconListFormat::Digits => encode_base_10_number(i, DIGITS)
-        };
-        let format = |i, paint: ANSIGenericString<'_, _>| match &settings.icon_list_format {
-            IconListFormat::Digits => format!("{}{}", encode_number(i), paint),
-            _ => format!("{}{}", paint, encode_number(i))
-        };
-
         write!(
             f,
             "{}{}{}{}{}{}{}{}",
             self.new_files
-                .map(|i| { format(i, Green.paint("N")) })
+                .map(|i| { format(number(i), green("N".to_string())) })
                 .unwrap_or_default(),
             self.modifications_staged
-                .map(|i| { format(i, Green.paint("M")) })
+                .map(|i| { format(number(i), green("M".to_string())) })
                 .unwrap_or_default(),
             self.renames_staged
-                .map(|i| { format(i, Green.paint("R")) })
+                .map(|i| { format(number(i), green("R".to_string())) })
                 .unwrap_or_default(),
             self.deletions_staged
-                .map(|i| { format(i, Green.paint("D")) })
+                .map(|i| { format(number(i), green("D".to_string())) })
                 .unwrap_or_default(),
             self.modifications
-                .map(|i| { format(i, Red.paint("M")) })
+                .map(|i| { format(number(i), red("M".to_string())) })
                 .unwrap_or_default(),
             self.renames
-                .map(|i| { format(i, Red.paint("R")) })
+                .map(|i| { format(number(i), red("R".to_string())) })
                 .unwrap_or_default(),
             self.deletions
-                .map(|i| { format(i, Red.paint("D")) })
+                .map(|i| { format(number(i), red("D".to_string())) })
                 .unwrap_or_default(),
             self.untracked
-                .map(|i| { format(i, Blue.paint("U")) })
+                .map(|i| { format(number(i), blue("U".to_string())) })
                 .unwrap_or_default()
         )
+    }
+}
+
+fn format(n: String, label: String) -> String {
+    let settings = SETTINGS.lock().unwrap();
+    match &settings.icon_list_format {
+        IconListFormat::Digits => format!("{}{}", n, label),
+        _ => format!("{}{}", label, n)
     }
 }
 
@@ -149,7 +137,7 @@ mod tests {
         assert_eq!(c.untracked.expect("new files expected"), 1);
 
         let mut expected = "1".to_string();
-        expected.push_str(&Blue.paint("U").to_string());
+        expected.push_str(&blue("U".to_string()).to_string());
         assert_eq!(c.to_string(), expected);
 
         dir.close().expect("cannot close");
