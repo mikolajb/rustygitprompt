@@ -1,4 +1,6 @@
 use ansi_term::Color::*;
+use ansi_term::ANSIGenericString;
+use crate::settings::*;
 
 pub fn analyze(repository: &git2::Repository) -> Result<Changes, git2::Error> {
     let mut options = git2::StatusOptions::new();
@@ -64,34 +66,54 @@ pub struct Changes {
     deletions: Option<usize>,
 }
 
+const SUPERSCRIPT: &'static [&'static str; 10] = &["⁰","¹","²","³","⁴","⁵","⁶","⁷","⁸","⁹"];
+const SUBSCRIPT: &'static [&'static str; 10] = &["₀","₁","₂","₃","₄","₅","₆","₇","₈","₉"];
+const DIGITS: &'static [&'static str; 10] = &["0","1","2","3","4","5","6","7","8","9"];
+
+
+fn encode_base_10_number(n: usize, symbols: &[&str; 10]) -> String {
+    n.to_string().chars().map(|c| symbols[c.to_digit(10).unwrap() as usize]).collect()
+}
+
 impl std::fmt::Display for Changes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let settings = SETTINGS.lock().unwrap();
+        let encode_number = |i| match &settings.icon_list_format {
+            IconListFormat::Superscript => encode_base_10_number(i, SUPERSCRIPT),
+            IconListFormat::Subscript => encode_base_10_number(i, SUBSCRIPT),
+            IconListFormat::Digits => encode_base_10_number(i, DIGITS)
+        };
+        let format = |i, paint: ANSIGenericString<'_, _>| match &settings.icon_list_format {
+            IconListFormat::Digits => format!("{}{}", encode_number(i), paint),
+            _ => format!("{}{}", paint, encode_number(i))
+        };
+
         write!(
             f,
             "{}{}{}{}{}{}{}{}",
             self.new_files
-                .map(|i| { format!("{}{}", i, Green.paint("N")) })
+                .map(|i| { format(i, Green.paint("N")) })
                 .unwrap_or_default(),
             self.modifications_staged
-                .map(|i| { format!("{}{}", i, Green.paint("M")) })
+                .map(|i| { format(i, Green.paint("M")) })
                 .unwrap_or_default(),
             self.renames_staged
-                .map(|i| { format!("{}{}", i, Green.paint("R")) })
+                .map(|i| { format(i, Green.paint("R")) })
                 .unwrap_or_default(),
             self.deletions_staged
-                .map(|i| { format!("{}{}", i, Green.paint("D")) })
+                .map(|i| { format(i, Green.paint("D")) })
                 .unwrap_or_default(),
             self.modifications
-                .map(|i| { format!("{}{}", i, Red.paint("M")) })
+                .map(|i| { format(i, Red.paint("M")) })
                 .unwrap_or_default(),
             self.renames
-                .map(|i| { format!("{}{}", i, Red.paint("R")) })
+                .map(|i| { format(i, Red.paint("R")) })
                 .unwrap_or_default(),
             self.deletions
-                .map(|i| { format!("{}{}", i, Red.paint("D")) })
+                .map(|i| { format(i, Red.paint("D")) })
                 .unwrap_or_default(),
             self.untracked
-                .map(|i| { format!("{}{}", i, Blue.paint("U")) })
+                .map(|i| { format(i, Blue.paint("U")) })
                 .unwrap_or_default()
         )
     }
