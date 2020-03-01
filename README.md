@@ -1,2 +1,2 @@
-[![Build Status](https://api.cirrus-ci.com/github/mikolajb/rustygitprompt.svg)](https://cirrus-ci.com/github/mikolajb/rustygitprompt)
+![Rust](https://github.com/mikolajb/rustygitprompt/workflows/Rust/badge.svg)
 # Rustygitprompt
