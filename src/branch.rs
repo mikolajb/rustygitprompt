@@ -1,4 +1,4 @@
-use ansi_term::Color::*;
+use crate::colors::*;
 
 pub fn analyze(repository: &git2::Repository) -> Result<BranchStatus, git2::Error> {
     let head = match repository.head() {
@@ -58,23 +58,23 @@ impl BranchStatus {
         match self.upstream {
             Some((a, b)) if a > 0 && b > 0 => Some(format!(
                 "{}{}{}",
-                Red.paint("⇵"),
-                Yellow.paint(b.to_string()),
-                Green.paint(a.to_string())
+                red("⇵".to_string()),
+                yellow(b.to_string()),
+                green(a.to_string())
             )),
-            Some((a, 0)) if a > 0 => Some(format!("{}{}", Green.paint("↑"), a)),
-            Some((0, b)) if b > 0 => Some(format!("{}{}", Yellow.paint("↓"), b)),
+            Some((a, 0)) if a > 0 => Some(format!("{}{}", green("↑".to_string()), a)),
+            Some((0, b)) if b > 0 => Some(format!("{}{}", yellow("↓".to_string()), b)),
             Some((0, 0)) => Some("".to_string()),
-            _ => Some(Red.paint("✗").to_string()),
+            _ => Some(red("✗".to_string()).to_string()),
         }
     }
 
     fn local(&self) -> Option<String> {
         match self.local {
-            Some((a, b)) if a > 0 && b > 0 => Some(format!("m{}{}{}", Purple.paint("↔"), a, b)),
-            Some((a, 0)) if a > 0 => Some(format!("m{}{}", Purple.paint("←"), a)),
-            Some((0, b)) if b > 0 => Some(format!("m{}{}", Purple.paint("→"), b)),
-            _ => Some(Green.paint("").to_string()),
+            Some((a, b)) if a > 0 && b > 0 => Some(format!("m{}{}{}", magenta("↔".to_string()), a, b)),
+            Some((a, 0)) if a > 0 => Some(format!("m{}{}", magenta("←".to_string()), a)),
+            Some((0, b)) if b > 0 => Some(format!("m{}{}", magenta("→".to_string()), b)),
+            _ => None,
         }
     }
 }
