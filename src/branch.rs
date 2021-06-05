@@ -1,4 +1,5 @@
 use crate::colors::*;
+use crate::settings::*;
 
 pub fn analyze(repository: &git2::Repository) -> Result<BranchStatus, git2::Error> {
     let head = match repository.head() {
@@ -14,10 +15,11 @@ pub fn analyze(repository: &git2::Repository) -> Result<BranchStatus, git2::Erro
 
     let branch_name = head.name().unwrap();
 
-    let hr_name = if branch_name == "refs/heads/master" {
-        "🅼"
-    } else {
-        head.shorthand().unwrap()
+    let settings = SETTINGS.lock().unwrap();
+    let hr_name = match branch_name {
+        "refs/heads/master" => settings.master_branch_label.clone(),
+        "refs/heads/main" => settings.master_branch_label.clone(),
+        _ => head.shorthand().unwrap().to_string(),
     };
 
     let local = repository
@@ -41,7 +43,7 @@ pub fn analyze(repository: &git2::Repository) -> Result<BranchStatus, git2::Erro
         });
 
     Ok(BranchStatus {
-        name: hr_name.to_string(),
+        name: hr_name,
         local,
         upstream,
     })
@@ -71,7 +73,9 @@ impl BranchStatus {
 
     fn local(&self) -> Option<String> {
         match self.local {
-            Some((a, b)) if a > 0 && b > 0 => Some(format!("m{}{}{}", magenta("↔".to_string()), a, b)),
+            Some((a, b)) if a > 0 && b > 0 => {
+                Some(format!("m{}{}{}", magenta("↔".to_string()), a, b))
+            }
             Some((a, 0)) if a > 0 => Some(format!("m{}{}", magenta("←".to_string()), a)),
             Some((0, b)) if b > 0 => Some(format!("m{}{}", magenta("→".to_string()), b)),
             _ => None,
