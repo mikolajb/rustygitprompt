@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use clap::ArgEnum;
 use std::sync::Mutex;
 
 // emulated global variable for our settings
@@ -17,42 +17,16 @@ pub struct Settings {
     pub master_branch_label: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
 pub enum IconListFormat {
     Superscript,
     Subscript,
     Digits,
 }
 
-impl FromStr for IconListFormat {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<IconListFormat, ()> {
-        match s.to_lowercase().as_str() {
-            "superscript" => Ok(IconListFormat::Superscript),
-            "subscript" => Ok(IconListFormat::Subscript),
-            "digits" => Ok(IconListFormat::Digits),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
 pub enum Shell {
     None,
     Zsh,
     ANSI,
-}
-
-impl FromStr for Shell {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Shell, ()> {
-        match s.to_lowercase().as_str() {
-            "zsh" => Ok(Shell::Zsh),
-            "ansi" => Ok(Shell::ANSI),
-            "none" => Ok(Shell::None),
-            _ => Err(()),
-        }
-    }
 }
