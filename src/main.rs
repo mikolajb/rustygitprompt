@@ -15,7 +15,7 @@ mod settings;
 #[clap(name = "rustygitprompt", about, author, version)]
 struct Prompt {
     #[clap(
-        arg_enum,
+        value_enum,
         short,
         long,
         help = "Sets the format for icon list",
@@ -23,7 +23,7 @@ struct Prompt {
     )]
     icon_list_format: IconListFormat,
     #[clap(
-        arg_enum,
+        value_enum,
         short,
         long,
         help = "Sets a color: zsh, ansi or none (default)",
