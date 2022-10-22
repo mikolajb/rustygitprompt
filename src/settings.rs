@@ -1,4 +1,4 @@
-use clap::ArgEnum;
+use clap::ValueEnum;
 use std::sync::Mutex;
 
 // emulated global variable for our settings
@@ -17,14 +17,14 @@ pub struct Settings {
     pub master_branch_label: String,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum IconListFormat {
     Superscript,
     Subscript,
     Digits,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Shell {
     None,
     Zsh,
