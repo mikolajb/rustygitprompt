@@ -11,5 +11,5 @@ edition = "2018"
 git2 = "0.16"
 ansi_term = "0.12"
 tempfile = "3"
-clap = { version = "4.1", features = ["derive"] }
+clap = { version = "4.3", features = ["derive"] }
 lazy_static = "1.4"
